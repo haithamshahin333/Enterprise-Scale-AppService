@@ -2,7 +2,6 @@
 @description('A short name for the workload being deployed')
 param workloadName string
 
-var owner = 'ASE Const Set'
 @description('Azure location to which the resources are to be deployed, defaulting to the resource group location')
 param location string
 
@@ -24,16 +23,22 @@ param jumpBoxAddressPrefix string = '10.0.3.0/24'
 
 param aseAddressPrefix string = '10.1.1.0/24'
 
+@description('Name of the Bastion Subnet')
+param bastionSubnetName string
+
+@description('Name of the DevOps Subnet')
+param devOpsSubnetName string
+
+@description('Name of the JumpBox Subnet')
+param jumpBoxSubnetName string
+
+@description('Name of the ASEv3 Subnet')
+param aseSubnetName string
+
 // Variables
+var owner = 'ASE Const Set'
 var hubVNetName = 'vnet-hub-${workloadName}-${environment}-${location}'
 var spokeVNetName = 'vnet-spoke-${workloadName}-${environment}-${location}-001'
-
-var bastionSubnetName = 'snet-bast-${workloadName}-${environment}-${location}'
-var devOpsSubnetName = 'snet-devops-${workloadName}-${environment}-${location}'
-var jumpBoxSubnetName = 'snet-jbox-${workloadName}-${environment}-${location}-001'
-
-var aseSubnetName = 'snet-ase-${workloadName}-${environment}-${location}-001'
-
 
 // Resources - VNet - SubNets
 resource vnetHub 'Microsoft.Network/virtualNetworks@2021-02-01' = {
@@ -51,62 +56,62 @@ resource vnetHub 'Microsoft.Network/virtualNetworks@2021-02-01' = {
     }
     enableVmProtection: false
     enableDdosProtection: false
-    // subnets: [
-    //   {
-    //     name: bastionSubnetName
-    //     properties: {
-    //       addressPrefix: bastionAddressPrefix
-    //     }
-    //   }
-    //   {
-    //     name: devOpsSubnetName
-    //     properties: {
-    //       addressPrefix: devOpsNameAddressPrefix
-    //     }
-    //   }
-    //   {
-    //     name: jumpBoxSubnetName
-    //     properties: {
-    //       addressPrefix: jumpBoxAddressPrefix
-    //     }
-    //   }
-    // ]
+    subnets: [
+      {
+        name: bastionSubnetName
+        properties: {
+          addressPrefix: bastionAddressPrefix
+        }
+      }
+      {
+        name: devOpsSubnetName
+        properties: {
+          addressPrefix: devOpsNameAddressPrefix
+        }
+      }
+      {
+        name: jumpBoxSubnetName
+        properties: {
+          addressPrefix: jumpBoxAddressPrefix
+        }
+      }
+    ]
   }
 }
 
-resource bastionSubnet 'Microsoft.Network/virtualNetworks/subnets@2021-02-01' = {
-  name: bastionSubnetName
-   parent: vnetHub
-   properties: {
-     addressPrefix: bastionAddressPrefix
-   }
-   dependsOn:[
-     vnetHub
-    ]
-}
-resource devOpsSubnet 'Microsoft.Network/virtualNetworks/subnets@2021-02-01' = {
-  name: devOpsSubnetName
-   parent: vnetHub
-   properties: {
-     addressPrefix: devOpsNameAddressPrefix
-   }
-   dependsOn:[
-    vnetHub
-    bastionSubnet
-   ]
-}
-resource jumpBoxSubnet 'Microsoft.Network/virtualNetworks/subnets@2021-02-01' = {
-  name: jumpBoxSubnetName
-   parent: vnetHub
-   properties: {
-     addressPrefix: jumpBoxAddressPrefix
-   }
-   dependsOn:[
-    vnetHub
-    bastionSubnet
-    devOpsSubnet
-   ]
-}
+// resource bastionSubnet 'Microsoft.Network/virtualNetworks/subnets@2021-02-01' = {
+//   name: bastionSubnetName
+//    parent: vnetHub
+//    properties: {
+//      addressPrefix: bastionAddressPrefix
+//    }
+//    dependsOn:[
+//      vnetHub
+//     ]
+// }
+// resource devOpsSubnet 'Microsoft.Network/virtualNetworks/subnets@2021-02-01' = {
+//   name: devOpsSubnetName
+//    parent: vnetHub
+//    properties: {
+//      addressPrefix: devOpsNameAddressPrefix
+//    }
+//    dependsOn:[
+//     vnetHub
+//     bastionSubnet
+//    ]
+// }
+// resource jumpBoxSubnet 'Microsoft.Network/virtualNetworks/subnets@2021-02-01' = {
+//   name: jumpBoxSubnetName
+//    parent: vnetHub
+//    properties: {
+//      addressPrefix: jumpBoxAddressPrefix
+//    }
+//    dependsOn:[
+//     vnetHub
+//     bastionSubnet
+//     devOpsSubnet
+//    ]
+// }
 
 resource vnetSpoke 'Microsoft.Network/virtualNetworks@2021-02-01' = {
   name: spokeVNetName
@@ -123,27 +128,27 @@ resource vnetSpoke 'Microsoft.Network/virtualNetworks@2021-02-01' = {
     }
     enableVmProtection: false
     enableDdosProtection: false
-    // subnets: [
-    //   {
-    //     name: aseSubnetName
-    //     properties: {
-    //       addressPrefix: aseAddressPrefix
-    //     }
-    //   }
-    // ]
+    subnets: [
+      {
+        name: aseSubnetName
+        properties: {
+          addressPrefix: aseAddressPrefix
+        }
+      }
+    ]
   }
 }
 
-resource aseSubnet 'Microsoft.Network/virtualNetworks/subnets@2021-02-01' = {
-  name: aseSubnetName
-   parent: vnetSpoke
-   properties: {
-     addressPrefix: aseAddressPrefix
-   }
-   dependsOn:[
-    vnetSpoke
-   ]
-}
+// resource aseSubnet 'Microsoft.Network/virtualNetworks/subnets@2021-02-01' = {
+//   name: aseSubnetName
+//    parent: vnetSpoke
+//    properties: {
+//      addressPrefix: aseAddressPrefix
+//    }
+//    dependsOn:[
+//     vnetSpoke
+//    ]
+// }
 
 // Peering
 resource vnetHubPeer 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2021-02-01' = {
@@ -182,21 +187,5 @@ resource vnetSpokePeer 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings
 
 
 // Output section
-output hubVNetName string = hubVNetName
-output spokeVNetName string = spokeVNetName
-
-output hubVNetId string = vnetHub.id
-output spokeVNetId string = vnetSpoke.id
-
-output aseSNName string = aseSubnet.name
-output aseSNID string = aseSubnet.id
-output bastionSN object = bastionSubnet
-
-
-output bastionSubnetName string = bastionSubnetName
-output devOpsSubnetName string = devOpsSubnetName
-output jumpBoxSubnetName string = jumpBoxSubnetName
-output aseSubnetName string = aseSubnetName
-
-
-
+output hubVNet object = vnetHub
+output spokeVNet object = vnetSpoke

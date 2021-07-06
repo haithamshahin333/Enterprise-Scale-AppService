@@ -21,6 +21,13 @@ var sharedResourceGroupResources = {
   'appInsightsName':'appin-${resourceSuffix}'
 }
 
+// Subnet names
+var bastionSubnetName = 'snet-bast-${workloadName}-${environment}-${location}'
+var devOpsSubnetName = 'snet-devops-${workloadName}-${environment}-${location}'
+var jumpBoxSubnetName = 'snet-jbox-${workloadName}-${environment}-${location}-001'
+
+var aseSubnetName = 'snet-ase-${workloadName}-${environment}-${location}-001'
+
 resource networkingRG 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: networkingResourceGroupName
   location: location
@@ -41,6 +48,10 @@ module networking 'networking.bicep' = {
   name: 'networkingresources'
   scope: resourceGroup(networkingRG.name)
   params: {
+    aseSubnetName: aseSubnetName
+    bastionSubnetName: bastionSubnetName
+    jumpBoxSubnetName: jumpBoxSubnetName
+    devOpsSubnetName: devOpsSubnetName
     workloadName: workloadName
     location: location
     environment: environment
@@ -59,6 +70,8 @@ module shared 'shared.bicep' = {
   }
 }
 
+var hubVNetName = 'vnet-hub-${workloadName}-${environment}-${location}'
+
 module ase 'ase.bicep' = {
   dependsOn: [
     networking
@@ -70,7 +83,7 @@ module ase 'ase.bicep' = {
     location: location
     workloadName: workloadName
     environment: environment
-    aseSubnetName: networking.outputs.aseSNName
-    aseSubnetId: networking.outputs.aseSNID
+    aseSubnetName: aseSubnetName
+    aseSubnetId: resourceId(networkingResourceGroupName, 'microsoft.network/virtualnetworks/subnets', hubVNetName, aseSubnetName)
   }
 }
